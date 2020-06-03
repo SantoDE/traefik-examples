@@ -1,0 +1,50 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik-ingress-controller
+  namespace: traefik
+spec:
+  ports:
+    - name: web
+      port: 80
+    - name: websecure
+      port: 443
+    - name: dashboard
+      port: 8080
+  selector:
+    app: traefik-ingress-controller
+  type: LoadBalancer
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  namespace: traefik
+  name: traefik-ingress-controller
+  labels:
+    app: traefik-ingress-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traefik-ingress-controller
+  template:
+    metadata:
+      labels:
+        app: traefik-ingress-controller
+    spec:
+      serviceAccountName: traefik-ingress-controller
+      containers:
+        - name: traefik
+          image: traefik:v2.2
+          args:
+            - --api.dashboard
+            - --api.insecure=true
+            - --accesslog
+            - --entrypoints.web.address=:80
+            - --entrypoints.websecure.address=:443
+            - --entryPoints.websecure.http.tls
+            - --entrypoints.traefik.address=:8080
+            - --log.level=debug
+            - --providers.kubernetesingress
+            - --providers.kubernetesingress.namespaces=default
